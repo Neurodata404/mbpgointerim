@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="ms">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sistem Semakan Tundaan MBPG</title>
+    <meta name="description" content="Semak status kenderaan yang ditunda oleh Majlis Perbandaran Pasir Gudang (MBPG)." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <script defer src="script.js"></script>
+  </head>
+  <body>
+    <main>
+      <section class="hero">
+        <div class="hero__content">
+          <div class="hero__badge">Majlis Perbandaran Pasir Gudang</div>
+          <h1>sistem semakan <span>Tundaan</span></h1>
+          <p class="hero__subtitle">Integrated Clamp And Towing System (ITCS)</p>
+          <p class="hero__intro">Kereta anda ditunda? Semak sekarang.</p>
+          <form id="searchForm" class="search-form" novalidate>
+            <label for="plateInput">No. Pendaftaran Kenderaan</label>
+            <div class="search-form__row">
+              <input id="plateInput" name="plate" type="text" inputmode="latin" placeholder="CNP521" autocomplete="off" maxlength="10" />
+              <button type="submit">Semak</button>
+            </div>
+            <p class="search-form__helper">Sila masukkan nombor pendaftaran kenderaan. Contoh: CNP521</p>
+            <p class="search-form__feedback" data-feedback></p>
+          </form>
+        </div>
+        <div class="hero__emblem">
+          <img src="assets/logo-mbpg.png" alt="Logo MBPG" />
+        </div>
+      </section>
+
+      <section class="info">
+        <div>
+          <p class="info__eyebrow">Majlis Perbandaran Pasir Gudang</p>
+          <p class="info__title">Integrated Clamp And Towing System (ITCS)</p>
+        </div>
+        <div>
+          <p>Aras 1, Menara Aqabah, Jalan Bandar, 81700 Pasir Gudang, Johor.</p>
+          <p>Telefon: +607-251 8080 &nbsp; | &nbsp; Faks: +607-251 3199</p>
+          <p>E-mel: itcs@mbpg.gov.my</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>
+        <strong>© <span id="currentYear"></span> Majlis Perbandaran Pasir Gudang.</strong>
+        <span>Semua hak cipta terpelihara.</span>
+      </div>
+      <div class="site-footer__links">
+        <a href="#" aria-label="Dasar privasi">Dasar Privasi</a>
+        <a href="#" aria-label="Terma penggunaan">Terma Penggunaan</a>
+      </div>
+    </footer>
+
+    <div class="vehicle-modal" id="vehicleModal" aria-hidden="true">
+      <div class="vehicle-modal__backdrop" data-close></div>
+      <div class="vehicle-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="vehicle-modal__header">
+          <div>
+            <p class="eyebrow">No. Pendaftaran</p>
+            <p class="plate" data-plate>—</p>
+          </div>
+          <div class="vehicle-modal__status" data-status>—</div>
+          <button class="vehicle-modal__close" type="button" data-close aria-label="Tutup modal">✕</button>
+        </div>
+
+        <div class="vehicle-modal__body">
+          <section>
+            <h2 id="modalTitle">Butiran Kesalahan</h2>
+            <dl class="details" data-case-details></dl>
+          </section>
+          <section>
+            <h3>Maklumat Pemilik</h3>
+            <dl class="details" data-owner-details></dl>
+            <div class="gallery-block">
+              <h3>Gambar Kesalahan</h3>
+              <div class="gallery" data-gallery></div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>
