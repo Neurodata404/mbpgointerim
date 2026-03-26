@@ -13,8 +13,10 @@ Landing page for Sistem Semakan Tundaan MBPG online
 - `token-user-id: <SECRET_TOKEN>`
 
 Token sekarang dibaca dari:
-- `window.__ENV_TOKEN__` (jika diset oleh host page)
-- fallback ke placeholder dalam `script.js` (`TOKEN_USER_ID`)
+- `window.__ENV_TOKEN__` (wajib diset oleh host page untuk production)
+- fallback ke placeholder dalam `script.js` (`TOKEN_USER_ID`) hanya untuk penanda konfigurasi
+
+Jika token sebenar tidak diset, carian akan disekat dan UI akan paparkan mesej konfigurasi token belum lengkap.
 
 ## Aliran semakan no. kenderaan
 1. User masukkan no. plat (cth `CNP521`)

@@ -1,5 +1,6 @@
 const API_BASE_URL = 'https://itcs-staging.up.railway.app/itcs-svc';
 const TOKEN_USER_ID = window.__ENV_TOKEN__ || '<SECRET_TOKEN>';
+const HAS_RUNTIME_TOKEN = Boolean(TOKEN_USER_ID) && TOKEN_USER_ID !== '<SECRET_TOKEN>';
 
 const FORM = document.getElementById('searchForm');
 const INPUT = document.getElementById('plateInput');
@@ -46,6 +47,11 @@ FORM.addEventListener('submit', async event => {
 
   if (!sanitizedPlate) {
     FEEDBACK.textContent = 'Masukkan nombor pendaftaran yang sah.';
+    return;
+  }
+
+  if (!HAS_RUNTIME_TOKEN) {
+    FEEDBACK.textContent = 'Konfigurasi token API belum lengkap. Sila hubungi pentadbir sistem MBPG.';
     return;
   }
 
