@@ -27,6 +27,12 @@
             </div>
             <p class="search-form__helper">Sila masukkan nombor pendaftaran kenderaan. Contoh: CNP521</p>
             <p class="search-form__feedback" data-feedback></p>
+            <div id="loadingWrap" class="loading-wrap" hidden aria-live="polite" aria-busy="false">
+              <div class="loading-text">Sedang mencari rekod kenderaan...</div>
+              <div class="loading-bar">
+                <div class="loading-bar__fill" id="loadingBarFill"></div>
+              </div>
+            </div>
           </form>
         </div>
         <div class="hero__emblem">
