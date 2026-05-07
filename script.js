@@ -1,5 +1,14 @@
+/* ===================================================
+   Sistem Semakan Tundaan MBPG — API Integration
+   ===================================================
+   Flow:
+   1. POST /api/clamps/search       (primary lookup)
+   2. GET  /api/jpj                  (enrich owner info)
+   3. POST /api/tow-assignments/search (fallback)
+   =================================================== */
+
 const API_BASE_URL = 'https://itcs-staging.up.railway.app/itcs-svc';
-const TOKEN_USER_ID = window.__ENV_TOKEN__ || '<SECRET_TOKEN>';
+const TOKEN_USER_ID = window.__ENV_TOKEN__ || 'a5d8cdc6-c6f3-473e-adfc-591099eeb26d';
 const HAS_RUNTIME_TOKEN = Boolean(TOKEN_USER_ID) && TOKEN_USER_ID !== '<SECRET_TOKEN>';
 
 const FORM = document.getElementById('searchForm');
@@ -22,15 +31,15 @@ const CASE_FIELDS = [
   { label: 'Lokasi Kesalahan', key: 'location' },
   { label: 'Jabatan / Unit', key: 'enforcementTeam' },
   { label: 'Pegawai Bertugas', key: 'officerInCharge' },
-  { label: 'Kontraktor / Operator', key: 'towOperator' }
+  { label: 'No. Siri Clamp', key: 'clampSerial' }
 ];
 
 const OWNER_FIELDS = [
   { label: 'Nama Pemilik', key: 'ownerName' },
-  { label: 'No. Telefon', key: 'ownerContact' },
-  { label: 'Alamat Surat-Menyurat', key: 'ownerAddress' },
+  { label: 'No. Kad Pengenalan', key: 'ownerIdNo' },
+  { label: 'Alamat', key: 'ownerAddress' },
+  { label: 'Jenis / Model Kenderaan', key: 'vehicleModel' },
   { label: 'Lokasi Tuntutan', key: 'releaseYard' },
-  { label: 'Caj & Syarat', key: 'storageFee' },
   { label: 'Catatan', key: 'remarks' }
 ];
 
@@ -40,6 +49,8 @@ closeTriggers.forEach(btn => btn.addEventListener('click', () => toggleModal(fal
 document.addEventListener('keydown', event => {
   if (event.key === 'Escape') toggleModal(false);
 });
+
+/* ─── Main submit handler ─────────────────────────── */
 
 FORM.addEventListener('submit', async event => {
   event.preventDefault();
@@ -60,10 +71,27 @@ FORM.addEventListener('submit', async event => {
   setLoading(true);
 
   try {
-    const opRecord = await fetchTowingOperationByPlate(sanitizedPlate);
-    const record = opRecord
-      ? mapTowingOperationToRecord(opRecord, sanitizedPlate)
-      : await fetchTowAssignmentFallbackRecord(sanitizedPlate);
+    /* Step 1: Search clamp records (primary) */
+    const clampRecord = await fetchClampByPlate(sanitizedPlate);
+
+    let record = null;
+
+    if (clampRecord) {
+      record = mapClampToRecord(clampRecord, sanitizedPlate);
+
+      /* Step 2: Enrich with JPJ owner data (best-effort) */
+      try {
+        const jpjData = await fetchJpjOwner(sanitizedPlate);
+        if (jpjData) {
+          enrichRecordWithJpj(record, jpjData);
+        }
+      } catch (jpjErr) {
+        console.warn('JPJ enrichment failed (non-blocking):', jpjErr.message);
+      }
+    } else {
+      /* Step 3: Fallback to tow-assignments */
+      record = await fetchTowAssignmentFallbackRecord(sanitizedPlate);
+    }
 
     if (!record) {
       FEEDBACK.textContent = 'Rekod tidak ditemui dalam sistem. Sila hubungi MBPG untuk bantuan lanjut.';
@@ -80,11 +108,9 @@ FORM.addEventListener('submit', async event => {
   }
 });
 
-function sanitizePlate(value = '') {
-  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
-}
+/* ─── API calls ────────────────────────────────────── */
 
-async function fetchTowingOperationByPlate(plate) {
+async function fetchClampByPlate(plate) {
   const payload = {
     vehicleRegistrationNo: plate,
     page: 0,
@@ -93,9 +119,15 @@ async function fetchTowingOperationByPlate(plate) {
     sortDirection: 'DESC'
   };
 
-  const response = await callApi('/api/towing-operations/search', payload);
+  const response = await callApi('POST', '/api/clamps/search', payload);
   const items = extractItems(response);
   return items[0] || null;
+}
+
+async function fetchJpjOwner(plate) {
+  const today = new Date().toISOString().slice(0, 10);
+  const url = `/api/jpj?registrationNumber=${encodeURIComponent(plate)}&offenceDate=${today}`;
+  return callApi('GET', url);
 }
 
 async function fetchTowAssignmentFallbackRecord(plate) {
@@ -107,7 +139,7 @@ async function fetchTowAssignmentFallbackRecord(plate) {
     sortDirection: 'DESC'
   };
 
-  const response = await callApi('/api/tow-assignments/search', payload);
+  const response = await callApi('POST', '/api/tow-assignments/search', payload);
   const item = extractItems(response)[0];
   if (!item) return null;
 
@@ -122,33 +154,42 @@ async function fetchTowAssignmentFallbackRecord(plate) {
     location: '—',
     enforcementTeam: 'MBPG ITCS',
     officerInCharge: item.assignedByName || '—',
-    towOperator: item.towingRegistrationNumber || '—',
+    clampSerial: '—',
     ownerName: '—',
-    ownerContact: '—',
+    ownerIdNo: '—',
     ownerAddress: '—',
+    vehicleModel: '—',
     releaseYard: '—',
-    storageFee: '—',
     remarks: 'Data daripada tow-assignments',
     gallery: []
   };
 }
 
-async function callApi(path, payload) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    method: 'POST',
+/* ─── Generic API caller (supports GET + POST) ───── */
+
+async function callApi(method, path, payload) {
+  const options = {
+    method,
     headers: {
       'Content-Type': 'application/json',
       'token-user-id': TOKEN_USER_ID
-    },
-    body: JSON.stringify(payload)
-  });
+    }
+  };
+
+  if (method === 'POST' && payload) {
+    options.body = JSON.stringify(payload);
+  }
+
+  const response = await fetch(`${API_BASE_URL}${path}`, options);
 
   if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
+    throw new Error(`API ${method} ${path} failed: ${response.status}`);
   }
 
   return response.json();
 }
+
+/* ─── Response helpers ─────────────────────────────── */
 
 function extractItems(response) {
   if (Array.isArray(response)) return response;
@@ -158,28 +199,46 @@ function extractItems(response) {
   return [];
 }
 
-function mapTowingOperationToRecord(op, fallbackPlate) {
+function mapClampToRecord(clamp, fallbackPlate) {
   return {
-    plate: op.vehicleRegistrationNo || fallbackPlate,
-    status: op.status || 'Dalam Proses',
-    caseRef: op.towingId || op.assignmentId || '—',
-    incidentDate: formatDate(op.createdAt) || '—',
-    reportDate: formatDate(op.createdDate || op.createdAt) || '—',
-    offenceType: op.warningNoticeNumber ? `Notis: ${op.warningNoticeNumber}` : 'Kes Tundaan',
-    legislation: '—',
-    location: '—',
+    plate: clamp.vehicleRegistrationNo || fallbackPlate,
+    status: clamp.status || 'Dalam Proses',
+    caseRef: clamp.clampId || '—',
+    incidentDate: formatDate(clamp.preClampDatetime || clamp.clampDatetime) || '—',
+    reportDate: formatDate(clamp.createdDate || clamp.preClampDatetime) || '—',
+    offenceType: clamp.offenceDescription || clamp.offenceCode || 'Kes Klamp',
+    legislation: clamp.compoundCodeId || '—',
+    location: [clamp.locationAddress, clamp.city].filter(Boolean).join(', ') || '—',
     enforcementTeam: 'MBPG ITCS',
-    officerInCharge: op.initiatedBy || '—',
-    towOperator: '—',
+    officerInCharge: clamp.enforcementOfficerName
+      ? `${clamp.enforcementOfficerName} (${clamp.enforcementOfficerStaffNo || '—'})`
+      : '—',
+    clampSerial: clamp.clampSerialNo || '—',
     ownerName: '—',
-    ownerContact: '—',
+    ownerIdNo: '—',
     ownerAddress: '—',
-    releaseYard: op.status === 'IN_DEPOT' ? 'Depoh MBPG' : '—',
-    storageFee: '—',
-    remarks: op.entrySource ? `Sumber: ${op.entrySource}` : '—',
+    vehicleModel: '—',
+    releaseYard: (clamp.status === 'TOWED' || clamp.status === 'IN_DEPOT') ? 'Depoh MBPG' : '—',
+    remarks: clamp.entrySource ? `Sumber: ${clamp.entrySource}` : '—',
     gallery: []
   };
 }
+
+function enrichRecordWithJpj(record, jpj) {
+  if (jpj.ownerName) record.ownerName = jpj.ownerName;
+  if (jpj.ownerIdNo) record.ownerIdNo = jpj.ownerIdNo;
+
+  const addressParts = [jpj.address1, jpj.address2, jpj.address3].filter(Boolean);
+  if (jpj.postcode) addressParts.push(jpj.postcode);
+  if (jpj.city) addressParts.push(jpj.city);
+  if (jpj.state) addressParts.push(jpj.state);
+  if (addressParts.length) record.ownerAddress = addressParts.join(', ');
+
+  const modelParts = [jpj.carMakeCode, jpj.model].filter(Boolean);
+  if (modelParts.length) record.vehicleModel = modelParts.join(' ');
+}
+
+/* ─── Date formatting ──────────────────────────────── */
 
 function formatDate(value) {
   if (!value) return '';
@@ -193,6 +252,8 @@ function formatDate(value) {
     minute: '2-digit'
   }).format(date);
 }
+
+/* ─── Modal rendering ──────────────────────────────── */
 
 function populateModal(record) {
   PLATE_EL.textContent = record.plate;
@@ -231,6 +292,8 @@ function renderGallery(images = []) {
   });
 }
 
+/* ─── Loading state ────────────────────────────────── */
+
 function setLoading(isLoading) {
   if (LOADING_WRAP) {
     LOADING_WRAP.hidden = !isLoading;
@@ -240,6 +303,8 @@ function setLoading(isLoading) {
   if (submitBtn) submitBtn.disabled = isLoading;
   if (INPUT) INPUT.disabled = isLoading;
 }
+
+/* ─── Modal toggle ─────────────────────────────────── */
 
 function toggleModal(state) {
   if (!state) {
