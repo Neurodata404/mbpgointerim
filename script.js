@@ -88,8 +88,26 @@ FORM.addEventListener('submit', async event => {
       } catch (jpjErr) {
         console.warn('JPJ enrichment failed (non-blocking):', jpjErr.message);
       }
-    } else {
-      /* Step 3: Fallback to tow-assignments */
+    }
+
+    /* Step 3: Fallback — try towing-operations */
+    if (!record) {
+      const towOpRecord = await fetchTowingOperationByPlate(sanitizedPlate);
+      if (towOpRecord) {
+        record = mapTowingOperationToRecord(towOpRecord, sanitizedPlate);
+
+        /* Also try JPJ enrichment for towing-op records */
+        try {
+          const jpjData = await fetchJpjOwner(sanitizedPlate);
+          if (jpjData) enrichRecordWithJpj(record, jpjData);
+        } catch (jpjErr) {
+          console.warn('JPJ enrichment failed (non-blocking):', jpjErr.message);
+        }
+      }
+    }
+
+    /* Step 4: Fallback — try tow-assignments */
+    if (!record) {
       record = await fetchTowAssignmentFallbackRecord(sanitizedPlate);
     }
 
@@ -119,9 +137,33 @@ async function fetchClampByPlate(plate) {
     sortDirection: 'DESC'
   };
 
-  const response = await callApi('POST', '/api/clamps/search', payload);
-  const items = extractItems(response);
-  return items[0] || null;
+  try {
+    const response = await callApi('POST', '/api/clamps/search', payload);
+    const items = extractItems(response);
+    return items[0] || null;
+  } catch (err) {
+    console.warn('Clamp search failed:', err.message);
+    return null;
+  }
+}
+
+async function fetchTowingOperationByPlate(plate) {
+  const payload = {
+    vehicleRegistrationNo: plate,
+    page: 0,
+    size: 1,
+    sortBy: 'createdDate',
+    sortDirection: 'DESC'
+  };
+
+  try {
+    const response = await callApi('POST', '/api/towing-operations/search', payload);
+    const items = extractItems(response);
+    return items[0] || null;
+  } catch (err) {
+    console.warn('Towing-operations search failed:', err.message);
+    return null;
+  }
 }
 
 async function fetchJpjOwner(plate) {
@@ -220,6 +262,29 @@ function mapClampToRecord(clamp, fallbackPlate) {
     vehicleModel: '—',
     releaseYard: (clamp.status === 'TOWED' || clamp.status === 'IN_DEPOT') ? 'Depoh MBPG' : '—',
     remarks: clamp.entrySource ? `Sumber: ${clamp.entrySource}` : '—',
+    gallery: []
+  };
+}
+
+function mapTowingOperationToRecord(op, fallbackPlate) {
+  return {
+    plate: op.vehicleRegistrationNo || fallbackPlate,
+    status: op.status || 'Dalam Proses',
+    caseRef: op.towingId || op.towingOperationId || op.id || '—',
+    incidentDate: formatDate(op.createdAt || op.createdDate) || '—',
+    reportDate: formatDate(op.createdDate || op.createdAt) || '—',
+    offenceType: op.warningNoticeNumber ? `Notis: ${op.warningNoticeNumber}` : 'Kes Tundaan',
+    legislation: '—',
+    location: [op.locationAddress, op.city].filter(Boolean).join(', ') || '—',
+    enforcementTeam: 'MBPG ITCS',
+    officerInCharge: op.initiatedBy || op.enforcementOfficerName || '—',
+    clampSerial: '—',
+    ownerName: '—',
+    ownerIdNo: '—',
+    ownerAddress: '—',
+    vehicleModel: '—',
+    releaseYard: (op.status === 'IN_DEPOT' || op.status === 'TOWED') ? 'Depoh MBPG' : '—',
+    remarks: op.entrySource ? `Sumber: ${op.entrySource}` : '—',
     gallery: []
   };
 }
