@@ -126,6 +126,12 @@ FORM.addEventListener('submit', async event => {
   }
 });
 
+/* ─── Helpers ──────────────────────────────────────── */
+
+function sanitizePlate(value = '') {
+  return value.toUpperCase().replace(/[^A-Z0-9]/g, '').trim();
+}
+
 /* ─── API calls ────────────────────────────────────── */
 
 async function fetchClampByPlate(plate) {
