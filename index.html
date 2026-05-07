@@ -12,21 +12,46 @@
     <script defer src="script.js"></script>
   </head>
   <body>
+    <!-- Top Navbar -->
+    <header class="top-nav">
+      <div class="top-nav__inner">
+        <img src="assets/logo-mbpg.png" alt="Logo MBPG" class="top-nav__logo" />
+        <span class="top-nav__title">Majlis Perbandaran Pasir Gudang</span>
+      </div>
+    </header>
+
     <main>
+      <!-- Hero Banner -->
       <section class="hero">
+        <div class="hero__overlay"></div>
         <div class="hero__content">
-          <div class="hero__badge">Majlis Perbandaran Pasir Gudang</div>
           <h1>sistem semakan <span>Tundaan</span></h1>
+          <p class="hero__untuk">Untuk</p>
           <p class="hero__subtitle">Integrated Clamp And Towing System (ITCS)</p>
-          <p class="hero__intro">Kereta anda ditunda? Semak sekarang.</p>
+        </div>
+      </section>
+
+      <!-- Search Card Section -->
+      <section class="search-section">
+        <div class="search-card">
+          <h2 class="search-card__heading">Kereta Anda Ditunda ? Semak sekarang</h2>
+
           <form id="searchForm" class="search-form" novalidate>
-            <label for="plateInput">No. Pendaftaran Kenderaan</label>
-            <div class="search-form__row">
-              <input id="plateInput" name="plate" type="text" inputmode="latin" placeholder="CNP521" autocomplete="off" maxlength="10" />
-              <button type="submit">Semak</button>
+            <label for="plateInput" class="search-form__label">No. Pendaftaran Kenderaan</label>
+            <input
+              id="plateInput"
+              name="plate"
+              type="text"
+              inputmode="latin"
+              placeholder="Sila Masukkan nombor pendaftaran kenderaan (Contoh : QMP6301)"
+              autocomplete="off"
+              maxlength="15"
+              class="search-form__input"
+            />
+            <div class="search-form__actions">
+              <p class="search-form__feedback" data-feedback></p>
+              <button type="submit" class="search-form__btn">Semak</button>
             </div>
-            <p class="search-form__helper">Sila masukkan nombor pendaftaran kenderaan. Contoh: CNP521</p>
-            <p class="search-form__feedback" data-feedback></p>
             <div id="loadingWrap" class="loading-wrap" hidden aria-live="polite" aria-busy="false">
               <div class="loading-text">Sedang mencari rekod kenderaan...</div>
               <div class="loading-bar">
@@ -35,35 +60,37 @@
             </div>
           </form>
         </div>
-        <div class="hero__emblem">
-          <img src="assets/logo-mbpg.png" alt="Logo MBPG" />
-        </div>
-      </section>
-
-      <section class="info">
-        <div>
-          <p class="info__eyebrow">Majlis Perbandaran Pasir Gudang</p>
-          <p class="info__title">Integrated Clamp And Towing System (ITCS)</p>
-        </div>
-        <div>
-          <p>Aras 1, Menara Aqabah, Jalan Bandar, 81700 Pasir Gudang, Johor.</p>
-          <p>Telefon: +607-251 8080 &nbsp; | &nbsp; Faks: +607-251 3199</p>
-          <p>E-mel: itcs@mbpg.gov.my</p>
-        </div>
       </section>
     </main>
 
+    <!-- Footer -->
     <footer class="site-footer">
-      <div>
-        <strong>© <span id="currentYear"></span> Majlis Perbandaran Pasir Gudang.</strong>
-        <span>Semua hak cipta terpelihara.</span>
+      <div class="site-footer__main">
+        <div class="site-footer__brand">
+          <img src="assets/logo-mbpg.png" alt="Logo MBPG" class="site-footer__logo" />
+          <span class="site-footer__brand-name">Majlis Perbandaran Pasir Gudang</span>
+        </div>
+        <div class="site-footer__contact">
+          <p><strong>Alamat:</strong> Aras 1, Menara Aqabah, Jalan Bandar, 81700 Pasir Gudang, Johor.</p>
+          <p><strong>Tel:</strong> +06 03-26176066</p>
+          <p><strong>Faks:</strong> +06 03-2617322</p>
+          <p><strong>Emel:</strong> mbpg@yopmail.com</p>
+        </div>
       </div>
-      <div class="site-footer__links">
-        <a href="#" aria-label="Dasar privasi">Dasar Privasi</a>
-        <a href="#" aria-label="Terma penggunaan">Terma Penggunaan</a>
+      <div class="site-footer__bottom">
+        <a href="#">Notis Hak Cipta</a>
+        <span class="site-footer__sep">|</span>
+        <a href="#">Penafian</a>
+        <span class="site-footer__sep">|</span>
+        <a href="#">Dasar Privasi &amp; Keselamatan</a>
+        <span class="site-footer__sep">|</span>
+        <a href="#">Soalan Lazim</a>
+        <span class="site-footer__sep">|</span>
+        <a href="#">Peta Laman</a>
       </div>
     </footer>
 
+    <!-- Vehicle Modal (unchanged functionality) -->
     <div class="vehicle-modal" id="vehicleModal" aria-hidden="true">
       <div class="vehicle-modal__backdrop" data-close></div>
       <div class="vehicle-modal__dialog" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
