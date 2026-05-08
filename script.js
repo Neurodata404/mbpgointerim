@@ -220,7 +220,8 @@ async function callApi(method, path, payload) {
     method,
     headers: {
       'Content-Type': 'application/json',
-      'token-user-id': TOKEN_USER_ID
+      'token-user-id': TOKEN_USER_ID,
+      'X-Client-Type': 'WEB'
     }
   };
 
